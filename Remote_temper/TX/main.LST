@@ -1,0 +1,273 @@
+C51 COMPILER V9.03   MAIN                                                                  09/11/2014 13:40:32 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\build\main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c REGFILE(.\build\transiver.ORC) BROWSE NOINTPROMOTE INCDIR(C:\Nordic 
+                    -Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24l01p;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\
+                    -hal\nrf24le1;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\compiler\c51;C:\Nordic Semiconductor\nRFgo SDK 2.
+                    -3.0.10040\source_code\compiler\common;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\) DEFINE(MCU_NRF24LE
+                    -1) DEBUG OBJECTEXTEND OBJECT(.\build\main.obj)
+
+line level    source
+
+   1          #include <stdio.h>
+   2          #include "nrf24le1.h"
+   3          #include "hal_uart.h"
+   4          #include "hal_clk.h"
+   5          #include "hal_nrf.h"
+   6          #include "hal_delay.h"
+   7          #include "hal_spi.h"
+   8          #define DSPIN P10
+   9          // Cusomization of low level stdio function. Used by for example printf().
+  10          #ifdef __ICC8051__
+              int putchar(int c)
+              #else /*presume C51 or other accepting compilator*/
+  13          char putchar(char c)
+  14          #endif
+  15          {
+  16   1        hal_uart_putchar(c);
+  17   1        return c;
+  18   1        hal_spi_slave_init (0x01,0x02);
+*** WARNING C259 IN LINE 18 OF main.c: 'parameter 2': different enumeration types
+  19   1      }
+  20          
+  21          // Cusomization of low level stdio function. Used by for example gets().
+  22          #ifdef __ICC8051__
+              int getchar(void)
+              #else /*presume C51 or other accepting compilator*/
+  25          char getchar(void)
+  26          #endif
+  27          {
+  28   1        return hal_uart_getchar();
+  29   1      }
+  30          
+  31          // Repeated putchar to print a string
+  32          void putstring(char *s)
+  33          {
+  34   1        while(*s != 0)
+  35   1          putchar(*s++);
+  36   1      }
+  37          void OneWireReset()
+  38          {
+  39   1           DSPIN=0;
+  40   1               P1DIR = 0xFE;
+  41   1      //       gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  42   1           delay_us(500);
+  43   1               P1DIR =0x01;
+  44   1      //gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_INPUT);
+  45   1      
+  46   1           delay_us(500);
+  47   1      }
+  48          void OneWireOutByte(uint8_t d)
+  49          {
+  50   1         uint8_t n;
+C51 COMPILER V9.03   MAIN                                                                  09/11/2014 13:40:32 PAGE 2   
+
+  51   1         EA=0;
+  52   1         for(n=8; n!=0; n--)
+  53   1         {
+  54   2            if ((d & 0x01) == 1)
+  55   2            {
+  56   3                       DSPIN=0;
+  57   3                       P1DIR = 0xFE;
+  58   3       //        gpio_pin_val_clear(DSPIN);
+  59   3       //        gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  60   3               delay_us(2); //5
+  61   3                       P1DIR = 0x01;
+  62   3       //        gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_INPUT);
+  63   3               delay_us(60);
+  64   3            }
+  65   2            else
+  66   2            {
+  67   3                       DSPIN=0;
+  68   3                       P1DIR = 0xFE;
+  69   3      //         gpio_pin_val_clear(DSPIN);
+  70   3      //         gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  71   3               delay_us(60);
+  72   3                       P1DIR = 0x01;
+  73   3       //        gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_INPUT);      
+  74   3            }
+  75   2            d=d>>1;
+  76   2         }
+  77   1         EA=1;
+  78   1         //interrupt_control_global_enable();
+  79   1      }
+  80          
+  81          uint8_t OneWireInByte()
+  82          {
+  83   1          uint8_t d=0, n,b=0;
+  84   1        EA=0;//interrupt_control_global_disable();
+  85   1      
+  86   1          for (n=0; n<8; n++)
+  87   1          {
+  88   2                       DSPIN=0;
+  89   2                       P1DIR = 0xFE;
+  90   2      //        gpio_pin_val_clear(DSPIN);
+  91   2      //        gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  92   2              delay_us(2); // 5
+  93   2              P1DIR=0x01;//gpio_pin_configure(DSPIN, GPIO_PIN_CONFIG_OPTION_DIR_INPUT);
+  94   2              delay_us(2); // 5
+  95   2              b = DSPIN; //gpio_pin_val_read(DSPIN);
+  96   2              delay_us(50);
+  97   2              d = (d >> 1) | (b<<7);
+  98   2          }
+  99   1          EA=1;//interrupt_control_global_enable();
+ 100   1          return(d);
+ 101   1      }
+ 102          
+ 103          int Read_Temper()
+ 104          {
+ 105   1      uint8_t DSdata[2];
+ 106   1      int16_t t_S;
+ 107   1           OneWireReset();
+ 108   1           OneWireOutByte(0xcc);
+ 109   1           OneWireOutByte(0x44);
+ 110   1      
+ 111   1           OneWireReset();
+ 112   1           OneWireOutByte(0xcc);
+C51 COMPILER V9.03   MAIN                                                                  09/11/2014 13:40:32 PAGE 3   
+
+ 113   1           OneWireOutByte(0xbe);
+ 114   1      
+ 115   1           DSdata[0] = OneWireInByte();
+ 116   1           DSdata[1] = OneWireInByte();
+ 117   1      
+ 118   1           OneWireReset();
+ 119   1           
+ 120   1              t_S = DSdata[1];
+ 121   1              t_S <<=8;
+ 122   1              t_S |= DSdata[0];
+ 123   1              if  (DSdata[1]>0x7f) {
+ 124   2                      t_S = (t_S ^0xffff)+1;
+ 125   2                      t_S=0-t_S;
+ 126   2      }
+ 127   1      return t_S; 
+ 128   1      }
+ 129          
+ 130          
+ 131          // Global variables
+ 132          static bool volatile radio_busy;
+ 133          
+ 134          void main(void)
+ 135          {
+ 136   1              int t;  
+ 137   1              uint8_t test;
+ 138   1              uint8_t DSdata[2];
+ 139   1           OneWireReset();
+ 140   1           OneWireOutByte(0xcc);
+ 141   1           OneWireOutByte(0x44);
+ 142   1      
+ 143   1           OneWireReset();
+ 144   1           OneWireOutByte(0xcc);
+ 145   1           OneWireOutByte(0xbe);
+ 146   1      
+ 147   1           DSdata[0] = OneWireInByte();
+ 148   1           DSdata[1] = OneWireInByte();
+ 149   1      
+ 150   1           OneWireReset();
+ 151   1      
+ 152   1        // Configure TXD pin as output.
+ 153   1        // P0.5, P0.3 and P1.0 are configured as outputs to make the example run on
+ 154   1        // either 24-pin, 32-pin or 48-pin nRF24LE1 variants.
+ 155   1        P01 =1;
+ 156   1        P0DIR = 0xD7;
+ 157   1        P1DIR = 0xFE;
+ 158   1      
+ 159   1         // Initializes the UART
+ 160   1        hal_uart_init(UART_BAUD_9K6);
+ 161   1      
+ 162   1        // Wait for XOSC to start to ensure proper UART baudrate
+ 163   1        while(hal_clk_get_16m_source() != HAL_CLK_XOSC16M)
+ 164   1        {}
+ 165   1      
+ 166   1        // Enable global interrupts
+ 167   1        EA = 1;
+ 168   1         // Enable the radio clock
+ 169   1        RFCKEN = 1U;
+ 170   1      
+ 171   1        // Enable RF interrupt
+ 172   1        RF = 1U;
+ 173   1        // Power up radio
+ 174   1        hal_nrf_set_power_mode(HAL_NRF_PWR_UP);
+C51 COMPILER V9.03   MAIN                                                                  09/11/2014 13:40:32 PAGE 4   
+
+ 175   1      
+ 176   1        // Print "Hello World" at start-up
+ 177   1        putstring("\r\nHello World!\r\n");
+ 178   1        printf("\r\nData%d",DSdata[0]);
+ 179   1        printf("\r\nData%d",DSdata[1]);
+ 180   1        printf("\r\n SizeOf int: %d",sizeof(int));
+ 181   1        for(;;)
+ 182   1        {
+ 183   2          delay_s(10);
+ 184   2              t= Read_Temper();
+ 185   2              test = 0x39;
+ 186   2              printf("Temper Is:%03d.%04d C\n",t>>4,(t%16)*625);
+ 187   2      //      hal_nrf_write_tx_payload((const uint8_t *)&t, 16U);
+ 188   2              hal_nrf_write_tx_payload((const uint8_t *)&t, sizeof(t));
+ 189   2      //      hal_nrf_write_tx_payload(DSdata,2U);
+ 190   2          // Toggle radio CE signal to start transmission
+ 191   2              CE_PULSE();
+ 192   2      
+ 193   2          radio_busy = true;
+ 194   2          // Wait for radio operation to finish
+ 195   2          while (radio_busy)
+ 196   2          {
+ 197   3          }
+ 198   2      //    putstring((char *)printf("Temper Is:%03d.%04d C\n",t>>4,(t%16)*625));
+ 199   2      //      delay_s(4);
+ 200   2          // If any characters received
+ 201   2      //   if( hal_uart_chars_available() )
+ 202   2      //    {
+ 203   2      //                      P3 = 0x11;              
+ 204   2            // Echo received characters
+ 205   2       //     putchar(getchar());
+ 206   2       //   }
+ 207   2        }
+ 208   1      }
+ 209          
+ 210          // Radio interrupt
+ 211          NRF_ISR()
+ 212          {
+ 213   1        uint8_t irq_flags;
+ 214   1      
+ 215   1        // Read and clear IRQ flags from radio
+ 216   1        irq_flags = hal_nrf_get_clear_irq_flags();
+ 217   1      
+ 218   1        switch(irq_flags)
+ 219   1        {
+ 220   2          // Transmission success
+ 221   2          case (1 << (uint8_t)HAL_NRF_TX_DS):
+ 222   2            radio_busy = false;
+ 223   2            // Data has been sent
+ 224   2            break;
+ 225   2          // Transmission failed (maximum re-transmits)
+ 226   2          case (1 << (uint8_t)HAL_NRF_MAX_RT):
+ 227   2            // When a MAX_RT interrupt occurs the TX payload will not be removed from the TX FIFO.
+ 228   2            // If the packet is to be discarded this must be done manually by flushing the TX FIFO.
+ 229   2            // Alternatively, CE_PULSE() can be called re-starting transmission of the payload.
+ 230   2            // (Will only be possible after the radio irq flags are cleared)
+ 231   2            hal_nrf_flush_tx();
+ 232   2            radio_busy = false;
+ 233   2            break;
+ 234   2          default:
+ 235   2            break;
+ 236   2        }
+C51 COMPILER V9.03   MAIN                                                                  09/11/2014 13:40:32 PAGE 5   
+
+ 237   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    549    ----
+   CONSTANT SIZE    =     67    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

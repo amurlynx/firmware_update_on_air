@@ -1,0 +1,573 @@
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\build\main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c OMF2 ROM(COMPACT) OPTIMIZE(9,SIZE) BROWSE MDU_R515 INCDIR(C:\Nordic 
+                    -Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24l01p;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\
+                    -hal\nrf24le1;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\compiler\c51;C:\Nordic Semiconductor\nRFgo SDK 2.
+                    -3.0.10040\source_code\compiler\common;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\) DEFINE(DEBUG_LED_)
+                    - DEBUG PRINT(.\list\main.lst) OBJECT(.\build\main.obj)
+
+line level    source
+
+   1          /******************************************************************************
+   2           * Boot loader for the Firmware Update over-the-air Application Note.
+   3           *
+   4           * Authors: Vegar Kåsli and Ole Magnus Ruud
+   5           *
+   6           * abbreviations/acronyms used in this document:
+   7           * BL = Boot Loader
+   8           * FW = Firmware
+   9           * MSG = Message
+  10           * CMD = Command
+  11           * NV = Non-volatile
+  12           * 
+  13           ******************************************************************************/
+  14          
+  15          //lint -e717
+  16          //lint -e534
+  17          //lint -e714
+  18          //lint -e783
+  19          
+  20          #include "main.h"
+  21          
+  22          /******************************************************************************/
+  23          
+  24          // RF Communication 
+  25          volatile uint8_t xdata default_channels[CHANNELS_SIZE] = CHANNELS;
+  26          volatile uint8_t xdata reset_channel = 0x02;
+  27          volatile uint8_t xdata default_pipe_address[5] = PIPE_ADDRESS;
+  28          volatile uint8_t xdata reset_pipe_address[5] = {0xE7,0xE7,0xE7,0xE7,0xE7};
+  29          volatile uint8_t xdata rcvd_buf[PAYLOAD_SIZE];
+  30          volatile uint8_t xdata send_buf[PAYLOAD_SIZE];
+  31          volatile bool xdata packet_received;
+  32          volatile bool xdata send_success;
+  33          
+  34          // Hardware id number - hard coded into boot loader. 
+  35          static const uint8_t model_number = 0x10;
+  36          
+  37          // Temporary buffer in idata memory.
+  38          uint8_t idata temp_data[16];
+  39          
+  40          /******************************************************************************/
+  41          
+  42          
+  43          /* Ma-ma-ma-main function! */
+  44          void main()
+  45          {
+  46   1        state_t state = LISTENING;
+  47   1        command_t cmd = CMD_NO_CMD;
+  48   1              firmware_start firmware;
+  49   1      
+  50   1        uint16_t channel_timer = 0, bootloader_timer = 0, connection_timer = 0;
+  51   1        uint8_t ch_i = 0, firmware_number = 0;
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 2   
+
+  52   1        bool running;
+  53   1              
+  54   1        uint16_t bytes_received = 0;
+  55   1        uint16_t bytes_total = 0;
+  56   1      
+  57   1        uint8_t ea_default, rf_default;
+  58   1      
+  59   1        // Disable RF interrupt
+  60   1        rf_default = RF;
+  61   1        RF = 0;
+  62   1        // Disable global interrupt
+  63   1        ea_default = EA;
+  64   1        EA = 0;
+  65   1        
+  66   1        // Set up parameters for RF communication.
+  67   1        configureRF();
+  68   1      
+  69   1        #ifdef DEBUG_LED_
+  70   1        P0DIR = 0;
+  71   1        P0 = 0x55;
+  72   1        #endif 
+  73   1      
+  74   1        running = true;
+  75   1        // Boot loader loop.
+  76   1        // Will terminate after a couple of seconds if firmware has been successfully
+  77   1        // installed.
+  78   1        while (running) {
+  79   2                      
+  80   2          // Polls the RF-interrupt bit every iteration. 
+  81   2          if (RFF) {
+  82   3            RFF = 0;
+  83   3            nrf_irq();
+  84   3      
+  85   3            if (packet_received) {
+  86   4              packet_received = false;
+  87   4              connection_timer = 0;
+  88   4              cmd = MSG_CMD;
+  89   4           
+  90   4              switch (cmd) {
+  91   5                // Host initiates contact with the device.
+  92   5                case CMD_INIT:
+  93   5                  // Send ACK to host, go to CONNECTED state if successful.
+  94   5                  sendInitAck(&state);
+  95   5                  // Reset timers 
+  96   5                  channel_timer = bootloader_timer = 0;
+  97   5                  break;
+  98   5      
+  99   5                // Host starts a firmware update.
+ 100   5                case CMD_UPDATE_START:
+ 101   5                  if (state == CONNECTED) {
+ 102   6                    // Initiate firmware updates, go to RECEIVING_FIRMWARE state
+ 103   6                    // if successful.
+ 104   6                    startFirmwareUpdate(&state, &bytes_total, &bytes_received, 
+ 105   6                                           &firmware_number);
+ 106   6                  }
+ 107   5      
+ 108   5                  #ifdef DEBUG_LED_
+ 109   5                  P0 = state;
+ 110   5                  #endif 
+ 111   5                  break;
+ 112   5      
+ 113   5                // Write message containing one hex record.
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 3   
+
+ 114   5                case CMD_WRITE:
+ 115   5                  if (state == RECEIVING_FIRMWARE) {
+ 116   6                    writeHexRecord(&state, &bytes_received); 
+ 117   6                  }
+ 118   5      
+ 119   5                  #ifdef DEBUG_LED_
+ 120   5                  P0 = 0x40;
+ 121   5                  #endif
+ 122   5                  break;
+ 123   5      
+ 124   5                // Firmware update has been completed.
+ 125   5                case CMD_UPDATE_COMPLETE:
+ 126   5                  CE_LOW();
+ 127   5                  // Check that every byte is received.
+ 128   5                  if (bytes_received == bytes_total) {
+ 129   6                    // Mark firmware as successfully installed. 
+ 130   6                    hal_flash_byte_write(FW_INSTALLED, 0x01);
+ 131   6                    hal_flash_byte_write(FW_NUMBER, firmware_number); 
+ 132   6                    state = CONNECTED;
+ 133   6                    send(CMD_ACK);
+ 134   6                  } else {
+ 135   6                    send(CMD_NACK);
+ 136   6                  }
+ 137   5      
+ 138   5                  if (!send_success) {
+ 139   6                    state = ERROR;
+ 140   6                  }
+ 141   5      
+ 142   5                  #ifdef DEBUG_LED_
+ 143   5                  P0 = 0x10;
+ 144   5                  #endif
+ 145   5                  break;
+ 146   5      
+ 147   5                // Host request data from flash at specified address.
+ 148   5                case CMD_READ:
+ 149   5                  readHexRecord();
+ 150   5      
+ 151   5                  #ifdef DEBUG_LED_
+ 152   5                  P0 = 0x20;
+ 153   5                  #endif
+ 154   5                  break;
+ 155   5      
+ 156   5                // Host sends ping to check connections with device.
+ 157   5                case CMD_PING:
+ 158   5                  if (state != LISTENING) {
+ 159   6                    send(CMD_PONG);
+ 160   6                  }
+ 161   5      
+ 162   5                  #ifdef DEBUG_LED_
+ 163   5                  P0 = 0x80;
+ 164   5                  #endif
+ 165   5                  break;
+ 166   5      
+ 167   5                // Host sends disconnect
+ 168   5                case CMD_EXIT:
+ 169   5                  state = LISTENING;
+ 170   5                  break;
+ 171   5      
+ 172   5                // These commands should no be received.
+ 173   5                case CMD_NO_CMD:
+ 174   5                default:
+ 175   5                  state = ERROR;
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 4   
+
+ 176   5                  break;
+ 177   5              }
+ 178   4              // Clear command
+ 179   4              cmd = CMD_NO_CMD;
+ 180   4            }
+ 181   3      
+ 182   3          // RF interrupt bit not set
+ 183   3          } else if (state == LISTENING) {
+ 184   3            // Will listen to one channel for 'a while' before changing.
+ 185   3            channel_timer++;
+ 186   3            if (channel_timer > CHANNEL_TIMEOUT) {
+ 187   4              channel_timer = 0;
+ 188   4              // Go to next channel
+ 189   4              ch_i = (ch_i+1)%3;
+ 190   4              hal_nrf_set_rf_channel(default_channels[ch_i]);
+ 191   4      
+ 192   4              #ifdef DEBUG_LED_
+ 193   4              P0 = ch_i;
+ 194   4              #endif
+ 195   4      
+ 196   4              // After changing channels and being in the LISTENING state
+ 197   4              // for 'a while', boot loader loop will check if there is firmware
+ 198   4              // installed, and if so end the while(running) loop.
+ 199   4              bootloader_timer++;
+ 200   4              if (bootloader_timer > BOOTLOADER_TIMEOUT) {
+ 201   5                bootloader_timer = 0;
+ 202   5                running = (hal_flash_byte_read(FW_INSTALLED) == 0x01) ? false : true;
+ 203   5              }
+ 204   4            }
+ 205   3      
+ 206   3          // While connected must receive something or connection times out.
+ 207   3          // Connection timer reset when packet received.
+ 208   3          } else if (state == CONNECTED) {
+ 209   3            connection_timer++;
+ 210   3            if (connection_timer > CONNECTION_TIMEOUT) {
+ 211   4              state = LISTENING;
+ 212   4            }
+ 213   3          }
+ 214   2              } 
+ 215   1      
+ 216   1        resetRF();
+ 217   1      
+ 218   1        #ifdef DEBUG_LED_
+ 219   1        // Default value for P0DIR
+ 220   1        P0 = 0x00;
+ 221   1        P0DIR = 0xFF;
+ 222   1        #endif
+ 223   1      
+ 224   1        EA = ea_default;
+ 225   1        RF = rf_default;
+ 226   1      
+ 227   1        // Reads address of firmware's reset vector.
+ 228   1        temp_data[0] = hal_flash_byte_read(FW_RESET_ADDR_H);
+ 229   1        temp_data[1] = hal_flash_byte_read(FW_RESET_ADDR_L);
+ 230   1              firmware = (firmware_start)(((uint16_t)temp_data[0]<<8) | (temp_data[1]));
+ 231   1              
+ 232   1        // Jump to firmware. Goodbye!
+ 233   1              firmware();
+ 234   1      }
+ 235          
+ 236          /* Send function.
+ 237           * Write to send_buf[1] - send_buf[31] before calling this function.
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 5   
+
+ 238           * command will be placed in send_buf[0].*/
+ 239          void send(command_t command)
+ 240          {
+ 241   1        uint8_t i;
+ 242   1      
+ 243   1        // Set operation mode to transmit.
+ 244   1        CE_LOW();
+ 245   1        hal_nrf_set_operation_mode(HAL_NRF_PTX);
+ 246   1        // Copy command to send buffer.
+ 247   1        send_buf[0] = command; 
+ 248   1        hal_nrf_write_tx_payload(send_buf, PAYLOAD_SIZE);
+ 249   1        // Activate sender
+ 250   1        CE_PULSE();
+ 251   1        send_success = false;
+ 252   1      
+ 253   1        // Wait for radio to transmit
+ 254   1        while (RFF != 1) ;
+ 255   1        RFF = 0;
+ 256   1        nrf_irq(); 
+ 257   1        // Clear send buffer.
+ 258   1        for (i = 0; i < PAYLOAD_SIZE; i++) {
+ 259   2          send_buf[i] = 0x00;
+ 260   2        }
+ 261   1        // Reset operation mode to receive.
+ 262   1        hal_nrf_set_operation_mode(HAL_NRF_PRX);
+ 263   1        CE_HIGH();
+ 264   1      }
+ 265          
+ 266          /* Radio "interrupt" routine.
+ 267           * (but it is only manually called) */
+ 268          void nrf_irq()
+ 269          {
+ 270   1        uint8_t irq_flags;
+ 271   1      
+ 272   1        // Read and clear IRQ flags from radio.
+ 273   1        irq_flags = hal_nrf_get_clear_irq_flags();
+ 274   1      
+ 275   1        switch (irq_flags) {
+ 276   2      
+ 277   2          // Transmission success
+ 278   2          case (1 << (uint8_t)HAL_NRF_TX_DS):
+ 279   2            send_success = true;
+ 280   2            // Data has been sent
+ 281   2            break;
+ 282   2      
+ 283   2          // Transmission failed (maximum re-transmits)
+ 284   2          case (1 << (uint8_t)HAL_NRF_MAX_RT):
+ 285   2            hal_nrf_flush_tx();
+ 286   2            send_success = false;
+ 287   2            break;
+ 288   2      
+ 289   2          // Data received 
+ 290   2          case (1 << (uint8_t)HAL_NRF_RX_DR):
+ 291   2            // Read payload
+ 292   2            while (!hal_nrf_rx_fifo_empty()) { 
+ 293   3              hal_nrf_read_rx_payload(rcvd_buf);
+ 294   3            }
+ 295   2            packet_received = true;
+ 296   2            break;
+ 297   2        
+ 298   2          default:
+ 299   2            ;
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 6   
+
+ 300   2        }
+ 301   1      }
+ 302          
+ 303          // Configures RF parameters before Enhanced Shockburst can be used.
+ 304          void configureRF()
+ 305          {
+ 306   1        packet_received = false;
+ 307   1        send_success = false;
+ 308   1      
+ 309   1        // Enable the radio clock
+ 310   1        RFCKEN = 1;
+ 311   1        // Set payload width to 32 bytes
+ 312   1        hal_nrf_set_rx_payload_width((int)HAL_NRF_PIPE0, PAYLOAD_SIZE);
+ 313   1        // Set auto-retries to 5 with 500 us intervals
+ 314   1        hal_nrf_set_auto_retr(5, 500);
+ 315   1        // Set pipe address
+ 316   1        hal_nrf_set_address(HAL_NRF_PIPE0, default_pipe_address);
+ 317   1        hal_nrf_set_address(HAL_NRF_TX, default_pipe_address);
+ 318   1        // Set initial channel
+ 319   1        hal_nrf_set_rf_channel(default_channels[1]);
+ 320   1        // Configure radio as primary receiver (PTX)
+ 321   1        hal_nrf_set_operation_mode(HAL_NRF_PRX);
+ 322   1        // Wait for the xtal to power up
+ 323   1        while (hal_clk_get_16m_source() != HAL_CLK_XOSC16M) ;
+ 324   1        // Power up radio
+ 325   1        hal_nrf_set_power_mode(HAL_NRF_PWR_UP);
+ 326   1        // Enable receiver
+ 327   1        CE_HIGH();
+ 328   1      
+ 329   1        return;
+ 330   1      }
+ 331          
+ 332          // Resets RF parameters to default values.
+ 333          // Must be called before jumping to new firmware.
+ 334          void resetRF()
+ 335          {
+ 336   1        // Reset values set by the RF setup.
+ 337   1        CE_LOW();
+ 338   1        // PWR_UP = 0
+ 339   1        hal_nrf_set_power_mode(HAL_NRF_PWR_DOWN);
+ 340   1        // PRIM_RX = 0
+ 341   1        hal_nrf_set_operation_mode(HAL_NRF_PTX);
+ 342   1        // RF_CH = 0x02;
+ 343   1        hal_nrf_set_rf_channel(reset_channel);
+ 344   1        // AW = 11 (Default = 5 bytes)
+ 345   1        // RX_ADDR_P0 = TX_ADDR = 0xE7E7E7E7E7
+ 346   1        hal_nrf_set_address(HAL_NRF_TX, reset_pipe_address);
+ 347   1        hal_nrf_set_address(HAL_NRF_PIPE0, reset_pipe_address);
+ 348   1        // ARD = 0000, ARC = 0011
+ 349   1        hal_nrf_set_auto_retr(3, 250);
+ 350   1        // RX_PW_P0 = 0x00
+ 351   1        hal_nrf_set_rx_payload_width((int)HAL_NRF_PIPE0, 0);
+ 352   1        // Disable radio clock
+ 353   1        RFCKEN = 0;
+ 354   1      
+ 355   1        return;
+ 356   1      }
+ 357          
+ 358          // Sends model number and firmware version number to host.
+ 359          void sendInitAck(state_t *state)
+ 360          {
+ 361   1        // Send model number and firmware number
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 7   
+
+ 362   1        send_buf[1] = model_number;
+ 363   1        send_buf[2] = hal_flash_byte_read(FW_NUMBER); 
+ 364   1        send(CMD_ACK);
+ 365   1      
+ 366   1        if (send_success) {
+ 367   2          *state = CONNECTED;
+ 368   2        } else {
+ 369   2          *state = LISTENING;
+ 370   2        }
+ 371   1        
+ 372   1        return;
+ 373   1      }
+ 374          
+ 375          // Verifies that update-start command is valid.
+ 376          // Will enter RECEIVING_FIRMWARE state if everything checks out.
+ 377          void startFirmwareUpdate(state_t *state, uint16_t *bytes_total, 
+ 378                                   uint16_t *bytes_received, uint8_t *firmware_number)
+ 379          {
+ 380   1        uint8_t i, checksum = 0, reset_vector[3];
+ 381   1        uint16_t bytes = 0;
+ 382   1                    
+ 383   1        // Calculate checksum
+ 384   1        for (i = 0; i < UPDATE_START_LENGTH; i++) {
+ 385   2          checksum += MSG_PAYLOAD(i);
+ 386   2        }
+ 387   1        // Checksum fail
+ 388   1        if (checksum != 0) {
+ 389   2          send_buf[1] = ERROR_CHECKSUM_FAIL;
+ 390   2          send(CMD_NACK);
+ 391   2          return;
+ 392   2        }
+ 393   1      
+ 394   1        // Get firmware size 
+ 395   1        bytes = MSG_ST_BYTES;
+ 396   1        // Check that firmware is within legal size range.
+ 397   1        if (bytes > FLASH_FW_MAX_SIZE) {
+ 398   2          // Send error report to host.
+ 399   2          send_buf[1] = ERROR_ILLEGAL_SIZE;
+ 400   2          send(CMD_NACK);
+ 401   2          return;
+ 402   2        }
+ 403   1        *bytes_total = bytes;
+ 404   1      
+ 405   1        // Get firmware's reset vector. 
+ 406   1        temp_data[0] = MSG_ST_RESET_OPCODE;
+ 407   1        temp_data[1] = MSG_ST_RESET_ADDR_H;
+ 408   1        temp_data[2] = MSG_ST_RESET_ADDR_L;
+ 409   1        // Write reset vector to non-volatile flash
+ 410   1        hal_flash_page_erase(FW_NV_DATA_PAGE);
+ 411   1        hal_flash_bytes_write(FW_RESET_VECTOR, temp_data, 3);
+ 412   1        // Get firmware serial number. Will be written to NV when update complete.
+ 413   1        *firmware_number = MSG_ST_NUMBER;
+ 414   1        *bytes_received = 0;
+ 415   1      
+ 416   1        // Read out old reset vector.
+ 417   1        PCON |= PMW;
+ 418   1        hal_flash_bytes_read(0x0000, reset_vector, 3);
+ 419   1        PCON &= ~PMW;
+ 420   1        // Erase first page, containing reset vector.
+ 421   1        hal_flash_page_erase(0);
+ 422   1        // Write back the old reset vector.
+ 423   1        PCON |= PMW;
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 8   
+
+ 424   1        hal_flash_bytes_write(0x0000, reset_vector, 3);
+ 425   1        PCON &= ~PMW;
+ 426   1        // Erase the reset of pages available to firmware.
+ 427   1        for (i = 1; i < FLASH_FW_PAGES; i++) {
+ 428   2          hal_flash_page_erase(i);
+ 429   2        }
+ 430   1      
+ 431   1        send(CMD_ACK);
+ 432   1        if (send_success) {
+ 433   2          *state = RECEIVING_FIRMWARE;
+ 434   2        } else {
+ 435   2          *state = LISTENING;
+ 436   2        }
+ 437   1      
+ 438   1        return;
+ 439   1      }
+ 440          
+ 441          // Writes hex-record's data field to flash memory.
+ 442          // Will update bytes_received and send reply to host.
+ 443          void writeHexRecord(state_t *state, uint16_t *bytes_received)
+ 444          {
+ 445   1        uint8_t i, checksum = 0, bytes = MSG_WR_BYTE_COUNT;
+ 446   1        uint16_t addr = MSG_WR_ADDR;
+ 447   1      
+ 448   1        // Disable RF receiving while writing.
+ 449   1        CE_LOW();
+ 450   1      
+ 451   1        // Calculate checksum for message. 
+ 452   1        for (i = 0; i < bytes+HEX_BYTES; i++) {
+ 453   2          checksum += MSG_PAYLOAD(i);
+ 454   2        }
+ 455   1        if (checksum != 0) {
+ 456   2          // Checksum fail
+ 457   2          send_buf[1] = ERROR_CHECKSUM_FAIL;
+ 458   2          send(CMD_NACK);
+ 459   2          return;
+ 460   2        }
+ 461   1      
+ 462   1        // Copy data portion of payload to idata temp memory.
+ 463   1        for (i = 0; i < bytes; i++) {
+ 464   2          temp_data[i] = MSG_WR_DATA(i);
+ 465   2        }
+ 466   1      
+ 467   1        // This will prevent the reset vector from being overwritten. 
+ 468   1        if (addr == 0x0000) {
+ 469   2          PCON |= PMW;
+ 470   2          // Offset write with the 3 bytes of the reset vector
+ 471   2          hal_flash_bytes_write((addr+3), (temp_data+3), (bytes-3));
+ 472   2          PCON &= ~PMW;
+ 473   2          
+ 474   2        // Make sure that bytes to be written is within legal pages.
+ 475   2        } else if (addr+bytes < FLASH_FW_MAX_SIZE) {
+ 476   2          // Write line to flash. 
+ 477   2          PCON |= PMW;
+ 478   2          hal_flash_bytes_write(addr, temp_data, bytes);
+ 479   2          PCON &= ~PMW;
+ 480   2      
+ 481   2        // Address is outside pages available to new firmware.
+ 482   2        } else {
+ 483   2          // Invalid address
+ 484   2          send_buf[1] = ERROR_ILLEGAL_ADDRESS;
+ 485   2          send(CMD_NACK);
+C51 COMPILER V9.03   MAIN                                                                  09/10/2014 13:50:36 PAGE 9   
+
+ 486   2          return;
+ 487   2        }
+ 488   1      
+ 489   1        // Add bytes to total received.
+ 490   1        *bytes_received += bytes;
+ 491   1        // Acknowledge message
+ 492   1        send(CMD_ACK);
+ 493   1        if (!send_success) {
+ 494   2          *state = ERROR;
+ 495   2        }
+ 496   1      
+ 497   1        return;
+ 498   1      }
+ 499          
+ 500          // Sends requested bytes of data to host.
+ 501          void readHexRecord()
+ 502          {
+ 503   1        uint8_t i, bytes;
+ 504   1        uint16_t addr;
+ 505   1      
+ 506   1        CE_LOW();
+ 507   1      
+ 508   1        // Get memory address and number of bytes to read.
+ 509   1        bytes = MSG_RE_BYTE_COUNT;
+ 510   1        addr = MSG_RE_ADDR;
+ 511   1        // Copy flash memory bytes to temporary idata buffer.
+ 512   1        PCON |= PMW;
+ 513   1        hal_flash_bytes_read(addr, temp_data, bytes);
+ 514   1        PCON &= ~PMW;
+ 515   1        // If request is for reset vector, read from non-volatile mem.
+ 516   1        if (addr == 0x0000) {
+ 517   2          hal_flash_bytes_read(FW_RESET_OPCODE, temp_data, 3);
+ 518   2        }
+ 519   1        // Copy to send buffer
+ 520   1        for (i = 0; i < bytes; i++) {
+ 521   2          send_buf[i+1] = temp_data[i];
+ 522   2        }
+ 523   1        send(CMD_ACK);
+ 524   1      
+ 525   1        return;
+ 526   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1414    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     80    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1      53
+   IDATA SIZE       =     16    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

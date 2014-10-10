@@ -1,0 +1,11 @@
+"main.obj",
+".\hal_delay.obj",
+".\hal_uart.obj",
+".\hal_clk.obj",
+".\hal_nrf_hw.obj",
+".\hal_nrf.obj" 
+TO "reciver" 
+RAMSIZE(256) 
+DISABLEWARNING (16) 
+OVERLAY( hal_nrf_write_reg ! * )
+XDATA( 0XFA00-0XFFFF )

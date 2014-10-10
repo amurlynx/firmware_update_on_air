@@ -1,0 +1,171 @@
+C51 COMPILER V9.03   HAL_FLASH                                                             09/11/2014 13:25:46 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE HAL_FLASH
+OBJECT MODULE PLACED IN .\hal_flash.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_
+                    -flash.c OMF2 BROWSE DEBUG PRINT(.\hal_flash.lst) OBJECT(.\hal_flash.obj)
+
+line level    source
+
+   1          /* Copyright (c) 2009 Nordic Semiconductor. All Rights Reserved.
+   2           *
+   3           * The information contained herein is confidential property of Nordic 
+   4           * Semiconductor ASA.Terms and conditions of usage are described in detail 
+   5           * in NORDIC SEMICONDUCTOR STANDARD SOFTWARE LICENSE AGREEMENT. 
+   6           *
+   7           * Licensees are granted free, non-transferable use of the information. NO
+   8           * WARRENTY of ANY KIND is provided. This heading must NOT be removed from
+   9           * the file.
+  10           *              
+  11           * $LastChangedRevision: 133 $
+  12           */ 
+  13          
+  14          /** @file
+  15           *@brief Implementation of hal_flash
+  16           */
+  17          
+  18          #include "nrf24le1.h"
+*** WARNING C318 IN LINE 18 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: can't
+             - open file 'nrf24le1.h'
+  19          #include "hal_flash.h"
+  20          
+  21          void hal_flash_page_erase(uint8_t pn)
+  22          { 
+  23   1        // Save interrupt enable state and disable interrupts:
+  24   1        F0 = EA;
+*** ERROR C202 IN LINE 24 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'F0': u
+             -ndefined identifier
+  25   1        EA = 0;
+*** ERROR C202 IN LINE 25 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'EA': u
+             -ndefined identifier
+  26   1      
+  27   1        // Enable flash write operation:
+  28   1        WEN = 1;
+*** ERROR C202 IN LINE 28 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'WEN': 
+             -undefined identifier
+  29   1       
+  30   1        // Write the page address to FCR to start the page erase operation. This
+  31   1        // operation is "self timed" when executing from the flash; the CPU will
+  32   1        // halt until the operation is finished:
+  33   1        FCR = pn;
+*** ERROR C202 IN LINE 33 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'FCR': 
+             -undefined identifier
+  34   1      
+  35   1        // When running from XDATA RAM we need to wait for the operation to finish:
+  36   1        while(RDYN == 1)
+*** ERROR C202 IN LINE 36 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'RDYN':
+             - undefined identifier
+  37   1          ;
+  38   1              
+  39   1        WEN = 0;
+*** ERROR C202 IN LINE 39 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'WEN': 
+             -undefined identifier
+  40   1        
+C51 COMPILER V9.03   HAL_FLASH                                                             09/11/2014 13:25:46 PAGE 2   
+
+  41   1        EA = F0; // Restore interrupt enable state  
+*** ERROR C202 IN LINE 41 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'EA': u
+             -ndefined identifier
+  42   1      }
+  43          
+  44          void hal_flash_byte_write(uint16_t a, uint8_t b)
+  45          {
+  46   1        static uint8_t xdata *pb;
+  47   1          
+  48   1        // Save interrupt enable state and disable interrupts:
+  49   1        F0 = EA;
+*** ERROR C202 IN LINE 49 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'F0': u
+             -ndefined identifier
+  50   1        EA = 0;
+*** ERROR C202 IN LINE 50 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'EA': u
+             -ndefined identifier
+  51   1        
+  52   1        // Enable flash write operation:
+  53   1        WEN = 1;
+*** ERROR C202 IN LINE 53 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'WEN': 
+             -undefined identifier
+  54   1        
+  55   1        // Write the byte directly to the flash. This operation is "self timed" when
+  56   1        // executing from the flash; the CPU will halt until the operation is
+  57   1        // finished:
+  58   1        pb = (uint8_t xdata *)a;
+  59   1        *pb = b; //lint -e613 "Null pointer ok here"
+  60   1      
+  61   1        // When running from XDATA RAM we need to wait for the operation to finish:
+  62   1        while(RDYN == 1)
+*** ERROR C202 IN LINE 62 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'RDYN':
+             - undefined identifier
+  63   1          ;
+  64   1      
+  65   1        WEN = 0;
+*** ERROR C202 IN LINE 65 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'WEN': 
+             -undefined identifier
+  66   1      
+  67   1        EA = F0; // Restore interrupt enable state
+*** ERROR C202 IN LINE 67 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'EA': u
+             -ndefined identifier
+  68   1      }
+  69          
+  70          void hal_flash_bytes_write(uint16_t a, const uint8_t *p, uint16_t n)
+  71          {
+  72   1        static uint8_t xdata *pb;
+  73   1      
+  74   1        // Save interrupt enable state and disable interrupts:
+  75   1        F0 = EA;
+*** ERROR C202 IN LINE 75 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'F0': u
+             -ndefined identifier
+  76   1        EA = 0;
+*** ERROR C202 IN LINE 76 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'EA': u
+             -ndefined identifier
+  77   1      
+  78   1        // Enable flash write operation:
+  79   1        WEN = 1;
+*** ERROR C202 IN LINE 79 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'WEN': 
+             -undefined identifier
+  80   1      
+  81   1        // Write the bytes directly to the flash. This operation is
+  82   1        // "self timed"; the CPU will halt until the operation is
+C51 COMPILER V9.03   HAL_FLASH                                                             09/11/2014 13:25:46 PAGE 3   
+
+  83   1        // finished:
+  84   1        pb = (uint8_t xdata *)a;
+  85   1        while(n--)
+  86   1        {
+  87   2          *pb++ = *p++;
+  88   2          //
+  89   2          // When running from XDATA RAM we need to wait for the operation to
+  90   2          // finish:
+  91   2          while(RDYN == 1)
+*** ERROR C202 IN LINE 91 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'RDYN':
+             - undefined identifier
+  92   2            ;
+  93   2        }
+  94   1      
+  95   1        WEN = 0;
+*** ERROR C202 IN LINE 95 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'WEN': 
+             -undefined identifier
+  96   1      
+  97   1        EA = F0; // Restore interrupt enable state
+*** ERROR C202 IN LINE 97 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_flash.c: 'EA': u
+             -ndefined identifier
+  98   1      }
+  99          
+ 100          uint8_t hal_flash_byte_read(uint16_t a)
+ 101          {
+ 102   1        uint8_t xdata *pb = (uint8_t xdata *)a;
+ 103   1        return *pb;
+ 104   1      }
+ 105          
+ 106          void hal_flash_bytes_read(uint16_t a, uint8_t *p, uint16_t n)
+ 107          {  
+ 108   1        uint8_t xdata *pb = (uint8_t xdata *)a;
+ 109   1        while(n--)
+ 110   1        {
+ 111   2          *p = *pb;
+ 112   2          pb++;
+ 113   2          p++;
+ 114   2        }
+ 115   1      }
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  19 ERROR(S)

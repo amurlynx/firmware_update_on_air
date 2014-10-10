@@ -1,0 +1,174 @@
+C51 COMPILER V9.03   MAIN                                                                  09/08/2014 16:02:08 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\build\main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE INCDIR(C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_c
+                    -ode\hal\nrf24l01p;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1;C:\Nordic Semiconductor\nRFgo S
+                    -DK 2.3.0.10040\source_code\compiler\c51;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\compiler\common;C:\Nor
+                    -dic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\) DEFINE(MCU_NRF24LE1) DEBUG OBJECTEXTEND OBJECT(.\build\main.ob
+                    -j)
+
+line level    source
+
+   1          #include <stdio.h>
+   2          #include "nrf24le1.h"
+   3          #include "hal_uart.h"
+   4          #include "hal_clk.h"
+   5          #include "hal_nrf.h"
+   6          #include "hal_delay.h"
+   7          // Cusomization of low level stdio function. Used by for example printf().
+   8          #ifdef __ICC8051__
+              int putchar(int c)
+              #else /*presume C51 or other accepting compilator*/
+  11          char putchar(char c)
+  12          #endif
+  13          {
+  14   1        hal_uart_putchar(c);
+  15   1        return c;
+  16   1      }
+  17          
+  18          // Cusomization of low level stdio function. Used by for example gets().
+  19          #ifdef __ICC8051__
+              int getchar(void)
+              #else /*presume C51 or other accepting compilator*/
+  22          char getchar(void)
+  23          #endif
+  24          {
+  25   1        return hal_uart_getchar();
+  26   1      }
+  27          
+  28          // Repeated putchar to print a string
+  29          void putstring(char *s)
+  30          {
+  31   1        while(*s != 0)
+  32   1          putchar(*s++);
+  33   1      }
+  34          
+  35          
+  36          // Global variables
+  37          static bool volatile radio_busy,get_pack,irq_get;
+  38          uint8_t payload[2];
+  39                  int t; 
+  40          void main(void)
+  41          {
+  42   1       
+  43   1      
+  44   1        // Configure TXD pin as output.
+  45   1        // P0.5, P0.3 and P1.0 are configured as outputs to make the example run on
+  46   1        // either 24-pin, 32-pin or 48-pin nRF24LE1 variants.
+  47   1        P01 =1;
+  48   1        P0DIR = 0xD7;
+  49   1        P1DIR = 0xFE;
+  50   1      
+  51   1         // Initializes the UART
+C51 COMPILER V9.03   MAIN                                                                  09/08/2014 16:02:08 PAGE 2   
+
+  52   1        hal_uart_init(UART_BAUD_9K6);
+  53   1      
+  54   1        // Wait for XOSC to start to ensure proper UART baudrate
+  55   1        while(hal_clk_get_16m_source() != HAL_CLK_XOSC16M)
+  56   1        {}
+  57   1      
+  58   1        // Enable global interrupts
+  59   1        EA = 1;
+  60   1         // Enable the radio clock
+  61   1        RFCKEN = 1U;
+  62   1      
+  63   1        // Enable RF interrupt
+  64   1        RF = 1U;
+  65   1          // Configure radio as primary receiver (PTX)
+  66   1        hal_nrf_set_operation_mode(HAL_NRF_PRX);
+  67   1      
+  68   1        // Set payload width to 3 bytes
+  69   1        hal_nrf_set_rx_payload_width((int)HAL_NRF_PIPE0, sizeof(int));
+  70   1        
+  71   1        
+  72   1        // Power up radio
+  73   1        hal_nrf_set_power_mode(HAL_NRF_PWR_UP);
+  74   1        irq_get =false;
+  75   1         
+  76   1          CE_HIGH();
+  77   1        
+  78   1        // Print "Hello World" at start-up
+  79   1        putstring("\r\nHello World!\r\n");
+  80   1        get_pack=false;
+  81   1        for(;;)
+  82   1        {
+  83   2         delay_s(2);
+  84   2         //putstring("\r\nHello World!\r\n");
+  85   2              if (irq_get) putstring("\r\nIRQ catched!\r\n");
+  86   2          if (get_pack) {
+  87   3      //      putstring((char *)printf("Payload IS %d \r\n", payload));
+  88   3      //      putstring((char *)printf("Payload IS %H \r\n", payload));
+  89   3              putstring("\r\n Get Packet \r\n");
+  90   3      /*          t = payload[1];
+  91   3              t <<=8;
+  92   3              t |= payload[0];
+  93   3              if  (payload[1]>0x7f) {
+  94   3                      t = (t ^0xffff)+1;
+  95   3                      t=0-t;
+  96   3      }
+  97   3      */       putstring((char *)printf("Temper:%03d.%04d C\r\n",t>>4,(t%16)*625));
+  98   3              //RF=1U;
+  99   3      //      if (payload>0) putstring((char *)printf("Temper Is:%03d.%04d C\r\n",payload>>4,(payload%16)*625));
+ 100   3              }
+ 101   2               else 
+ 102   2               {
+ 103   3               putstring("\r\nNot packet!\r\n");
+ 104   3               }
+ 105   2      //      delay_s(4);
+ 106   2          // If any characters received
+ 107   2      //   if( hal_uart_chars_available() )
+ 108   2      //    {
+ 109   2      //                      P3 = 0x11;              
+ 110   2            // Echo received characters
+ 111   2       //     putchar(getchar());
+ 112   2       //   }
+ 113   2      //    irq_get = false;
+C51 COMPILER V9.03   MAIN                                                                  09/08/2014 16:02:08 PAGE 3   
+
+ 114   2      //      get_pack = false;
+ 115   2        }
+ 116   1      }
+ 117          
+ 118          // Radio interrupt
+ 119          // Radio interrupt
+ 120          NRF_ISR()
+ 121          {
+ 122   1        uint8_t irq_flags;
+ 123   1      
+ 124   1        // Read and clear IRQ flags from radio
+ 125   1        irq_flags = hal_nrf_get_clear_irq_flags();
+ 126   1        irq_get=!irq_get;
+ 127   1        // If data received
+ 128   1        if((irq_flags & (1<<(uint8_t)HAL_NRF_RX_DR)) > 0)
+ 129   1        {
+ 130   2          // Read payload
+ 131   2          while(!hal_nrf_rx_fifo_empty())
+ 132   2          {
+ 133   3            hal_nrf_read_rx_payload((const uint8_t *) &t);
+ 134   3                get_pack=true;
+ 135   3          }
+ 136   2      
+ 137   2          // Write received payload[0] to port 0
+ 138   2      
+ 139   2      //    P0 = payload[0];
+ 140   2      //  RF = 0U;    
+ 141   2        }
+ 142   1      }
+ 143          /** @} */
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    310    ----
+   CONSTANT SIZE    =     88    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

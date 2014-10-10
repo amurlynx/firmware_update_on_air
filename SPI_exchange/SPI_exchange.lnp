@@ -1,0 +1,9 @@
+"main.obj",
+".\hal_delay.obj",
+".\hal_spi.obj",
+".\hal_uart.obj",
+".\hal_flash.obj",
+".\hal_clk.obj" 
+TO "SPI_exchange" 
+
+PRINT(".\build\SPI_exchange.map") CASE DISABLEWARNING (16) 

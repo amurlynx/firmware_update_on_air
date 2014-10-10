@@ -1,0 +1,1 @@
+"main.c" BROWSE INCDIR(.\NRF24LE1_client-master\include;.\src) DEBUG OBJECTEXTEND

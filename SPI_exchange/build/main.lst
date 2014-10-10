@@ -1,0 +1,148 @@
+C51 COMPILER V9.03   MAIN                                                                  09/28/2014 17:29:51 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c OMF2 BROWSE MDU_R515 INCDIR(C:\Nordic Semiconductor\nRFgo SDK 2.3.0.
+                    -10040\source_code\hal\nrf24l01p;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1;C:\Nordic Semicon
+                    -ductor\nRFgo SDK 2.3.0.10040\source_code\compiler\c51;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\compiler
+                    -\common;C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\) DEBUG PRINT(.\build\main.lst)
+
+line level    source
+
+   1          #include <stdint.h>
+   2          #include <stdio.h>
+   3          #include "nrf24le1.h"
+   4          #include "hal_clk.h"
+   5          #include "hal_uart.h"
+   6          #include "hal_spi.h"
+   7          #include "hal_delay.h"
+   8          // Cusomization of low level stdio function. Used by for example printf().
+   9          #ifdef __ICC8051__
+              int putchar(int c)
+              #else /*presume C51 or other accepting compilator*/
+  12          char putchar(char c)
+  13          #endif
+  14          {
+  15   1        hal_uart_putchar(c);
+  16   1        return c;
+  17   1      }
+  18          
+  19          // Cusomization of low level stdio function. Used by for example gets().
+  20          #ifdef __ICC8051__
+              int getchar(void)
+              #else /*presume C51 or other accepting compilator*/
+  23          char getchar(void)
+  24          #endif
+  25          {
+  26   1        return hal_uart_getchar();
+  27   1      }
+  28          
+  29          // Repeated putchar to print a string
+  30          void putstring(char *s)
+  31          {
+  32   1        while(*s != 0)
+  33   1          putchar(*s++);
+  34   1      }
+  35          void hal_spi_slave_readn(char* rbuf)
+  36          {
+  37   1      uint32_t RXCnt=0;
+  38   1      uint8_t in1=0;
+  39   1      /* while (!hal_spi_slave_csn_high())
+  40   1         {  
+  41   1         rbuf[RXCnt]=SPISDAT;
+  42   1         RXCnt=RXCnt+1;
+  43   1         in1=1;
+  44   1         }              */
+  45   1         rbuf[0] =    hal_spi_slave_read();
+  46   1         rbuf[1] = hal_spi_slave_read();
+  47   1         rbuf[2] = hal_spi_slave_read();
+  48   1      
+  49   1         if (1==1) 
+  50   1         {
+  51   2         printf("data is: %d %d %d \r\n", (uint16_t)rbuf[0],(uint16_t)rbuf[1],(uint16_t)rbuf[2]);
+  52   2         printf("sdata is: %d \r\n", (uint16_t)SPISDAT);
+C51 COMPILER V9.03   MAIN                                                                  09/28/2014 17:29:51 PAGE 2   
+
+  53   2         printf("s2data is: %d \r\n", (uint16_t)rbuf[1]);
+  54   2         printf("sPIF is: %d \r\n", (uint16_t)SPIF);
+  55   2         printf("count is: %d \r\n", (uint16_t)RXCnt);
+  56   2         in1=0;
+  57   2         }
+  58   1      //   printf("Exit From Function \r\n");
+  59   1      }
+  60          
+  61          uint16_t rcev=0;
+  62          bool inter,read = false;
+  63          char buf[3];
+  64          void main() 
+  65          {
+  66   1      uint8_t i=0;
+  67   1      
+  68   1       
+  69   1        P01 =1;
+  70   1        P0DIR = 0xD7;
+  71   1        P1DIR = 0xFE;
+  72   1      
+  73   1         // Initializes the UART
+  74   1        hal_uart_init(UART_BAUD_9K6);
+  75   1      
+  76   1        // Wait for XOSC to start to ensure proper UART baudrate
+  77   1        while(hal_clk_get_16m_source() != HAL_CLK_XOSC16M)
+  78   1        {}   
+  79   1        EA=1;
+  80   1        hal_spi_slave_init(HAL_SPI_MODE_0,HAL_SPI_MSB_LSB );
+  81   1      
+  82   1        SPI=1U;
+  83   1       
+  84   1       while (1) {
+  85   2           
+  86   2       if (inter){
+  87   3         printf("data is: %02X %02X %02X \r\n", (uint16_t)buf[0],(uint16_t)buf[1],(uint16_t)buf[2]);
+  88   3         printf("sdata is: %d \r\n", (uint16_t)SPISDAT);
+  89   3         printf("s2data is: %d \r\n", (uint16_t)buf[1]);
+  90   3         printf("sPIF is: %d \r\n", (uint16_t)SPI);
+  91   3       // hal_spi_slave_readn(buf);
+  92   3        printf("interupt hooking!");
+  93   3        inter = false;
+  94   3       
+  95   3        }
+  96   2       //if (read)  printf("SPI READ!");
+  97   2       //  rcev=hal_spi_slave_read();
+  98   2      //   printf("data1 is: %d %d %d %d \r\n",(uint16_t)buf[1],(uint16_t)buf[0],(uint16_t)buf[2],(uint16_t)buf[
+             -3]);
+  99   2       //  printf("data is: %d \r\n",(uint16_t)rcev);
+ 100   2       if (SPISSTAT >0) printf("data is: %02X \r\n",SPISSTAT);
+ 101   2      
+ 102   2       //delay_s(2);
+ 103   2       
+ 104   2       
+ 105   2       }
+ 106   1      }
+ 107          SER_ISR() 
+ 108          {
+ 109   1         inter=true;
+ 110   1         buf[0] =     hal_spi_slave_rw(0xFF);
+ 111   1         buf[1] =     hal_spi_slave_rw(buf[0]);
+ 112   1         buf[2] =     hal_spi_slave_rw(buf[1]);
+ 113   1      }
+C51 COMPILER V9.03   MAIN                                                                  09/28/2014 17:29:51 PAGE 3   
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    489    ----
+   CONSTANT SIZE    =    147    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7      13
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

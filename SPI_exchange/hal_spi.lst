@@ -1,0 +1,253 @@
+C51 COMPILER V9.03   HAL_SPI                                                               09/11/2014 13:25:46 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE HAL_SPI
+OBJECT MODULE PLACED IN .\hal_spi.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_
+                    -spi.c OMF2 BROWSE DEBUG PRINT(.\hal_spi.lst) OBJECT(.\hal_spi.obj)
+
+line level    source
+
+   1          /* Copyright (c) 2009 Nordic Semiconductor. All Rights Reserved.
+   2           *
+   3           * The information contained herein is confidential property of Nordic 
+   4           * Semiconductor ASA.Terms and conditions of usage are described in detail 
+   5           * in NORDIC SEMICONDUCTOR STANDARD SOFTWARE LICENSE AGREEMENT. 
+   6           *
+   7           * Licensees are granted free, non-transferable use of the information. NO
+   8           * WARRENTY of ANY KIND is provided. This heading must NOT be removed from
+   9           * the file.
+  10           *              
+  11           * $LastChangedRevision: 133 $
+  12           */
+  13          
+  14           /** @file
+  15           * @brief Implementation of  hal_spi
+  16           */
+  17          
+  18          #include "nrf24le1.h"
+*** WARNING C318 IN LINE 18 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: can't o
+             -pen file 'nrf24le1.h'
+  19          #include "hal_spi.h"
+  20          #include "nordic_common.h"
+*** WARNING C318 IN LINE 20 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: can't o
+             -pen file 'nordic_common.h'
+  21          
+  22          void hal_spi_master_init(hal_spi_clkdivider_t ck, hal_spi_mode_t mode, hal_spi_byte_order_t bo)
+  23          {
+  24   1        SPIMCON0 = 0;                           // Default register settings
+*** ERROR C202 IN LINE 24 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  25   1        switch (ck)                             // Set desired clock divider
+  26   1        {
+  27   2          case SPI_CLK_DIV2:
+  28   2            SPIMCON0 |= (0x00 << 4);
+*** ERROR C202 IN LINE 28 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  29   2            break;
+  30   2          case SPI_CLK_DIV4:
+  31   2            SPIMCON0 |= (0x01 << 4);
+*** ERROR C202 IN LINE 31 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  32   2            break;
+  33   2          case SPI_CLK_DIV8:
+  34   2            SPIMCON0 |= (0x02 << 4);
+*** ERROR C202 IN LINE 34 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  35   2            break;
+  36   2          case SPI_CLK_DIV16:
+  37   2            SPIMCON0 |= (0x03 << 4);
+*** ERROR C202 IN LINE 37 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  38   2            break;
+  39   2          case SPI_CLK_DIV32:
+  40   2            SPIMCON0 |= (0x04 << 4);
+C51 COMPILER V9.03   HAL_SPI                                                               09/11/2014 13:25:46 PAGE 2   
+
+*** ERROR C202 IN LINE 40 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  41   2            break;
+  42   2          case SPI_CLK_DIV64:                   // We use clock divder 64 as default
+  43   2          default:
+  44   2            SPIMCON0 |= (0x05 << 4);
+*** ERROR C202 IN LINE 44 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  45   2            break;  
+  46   2        }
+  47   1        switch(mode)                            // Set desired mode
+  48   1        {
+  49   2          case HAL_SPI_MODE_0:
+  50   2            SPIMCON0 |= (0x00 << 1);
+*** ERROR C202 IN LINE 50 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  51   2            break;
+  52   2          case HAL_SPI_MODE_1:
+  53   2            SPIMCON0 |= (0x01 << 1);
+*** ERROR C202 IN LINE 53 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  54   2            break;
+  55   2          case HAL_SPI_MODE_2:
+  56   2            SPIMCON0 |= (0x02 << 1);
+*** ERROR C202 IN LINE 56 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  57   2            break;
+  58   2          case HAL_SPI_MODE_3:      
+  59   2            SPIMCON0 |= (0x03 << 1);
+*** ERROR C202 IN LINE 59 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  60   2            break;
+  61   2        }
+  62   1        
+  63   1        if(bo == HAL_SPI_LSB_MSB)               // Set desired data order
+  64   1        {
+  65   2          SPIMCON0 |= BIT_3;
+*** ERROR C202 IN LINE 65 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  66   2        }
+  67   1      
+  68   1        SPIMCON0 |= BIT_0;                      // Enable SPI master
+*** ERROR C202 IN LINE 68 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMCON0
+             -': undefined identifier
+  69   1      }
+  70          
+  71          uint8_t hal_spi_master_read_write(uint8_t pLoad)
+  72          {
+  73   1        SPIMDAT = pLoad ;                       // Write data to SPI master
+*** ERROR C202 IN LINE 73 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMDAT'
+             -: undefined identifier
+  74   1        while(!(SPIMSTAT & 0x04))               // Wait for data available in rx_fifo
+*** ERROR C202 IN LINE 74 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMSTAT
+             -': undefined identifier
+  75   1        ;
+  76   1        return SPIMDAT;                         // Return data register
+*** ERROR C202 IN LINE 76 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPIMDAT'
+             -: undefined identifier
+  77   1      }
+  78          
+  79          void hal_spi_slave_init(hal_spi_mode_t mode, hal_spi_byte_order_t byte_order)
+  80          {
+C51 COMPILER V9.03   HAL_SPI                                                               09/11/2014 13:25:46 PAGE 3   
+
+  81   1        uint8_t temp;
+  82   1        SPISCON0 = 0xF0; //default register settings
+*** ERROR C202 IN LINE 82 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON0
+             -': undefined identifier
+  83   1        I3FR=1; 
+*** ERROR C202 IN LINE 83 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'I3FR': u
+             -ndefined identifier
+  84   1        INTEXP |= 0x01; //gate SPI slave interrupt to INT3
+*** ERROR C202 IN LINE 84 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'INTEXP':
+             - undefined identifier
+  85   1        
+  86   1        switch(mode)
+  87   1        {
+  88   2          case 0:
+  89   2            SPISCON0 |= 0;
+*** ERROR C202 IN LINE 89 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON0
+             -': undefined identifier
+  90   2            break;
+  91   2          case 1:
+  92   2            SPISCON0 |= (1 << 1);
+*** ERROR C202 IN LINE 92 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON0
+             -': undefined identifier
+  93   2            break;
+  94   2          case 2:
+  95   2            SPISCON0 |= (2 << 1);
+*** ERROR C202 IN LINE 95 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON0
+             -': undefined identifier
+  96   2            break;
+  97   2          case 3:      
+  98   2            SPISCON0 |= (3 << 1);
+*** ERROR C202 IN LINE 98 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON0
+             -': undefined identifier
+  99   2            break;
+ 100   2        }
+ 101   1        SPISCON0 |= (~(byte_order & 0x01)) << 3; 
+*** ERROR C202 IN LINE 101 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON
+             -0': undefined identifier
+ 102   1      
+ 103   1        //enable SPI slave
+ 104   1        SPISCON0 |= 0x01;
+*** ERROR C202 IN LINE 104 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISCON
+             -0': undefined identifier
+ 105   1        while((SPISSTAT & 0x01))
+*** ERROR C202 IN LINE 105 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISSTA
+             -T': undefined identifier
+ 106   1        temp=SPISDAT; //flush rx fifo
+*** ERROR C202 IN LINE 106 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISDAT
+             -': undefined identifier
+ 107   1      }
+ 108          
+ 109          uint8_t hal_spi_slave_rw(uint8_t pLoad)
+ 110          {
+ 111   1        hal_spi_slave_preload(pLoad);
+ 112   1        return hal_spi_slave_read();
+ 113   1      
+ 114   1      }
+ 115          
+ 116          uint8_t sstat_shadow = 0;
+ 117          
+ 118          bool hal_spi_slave_csn_high()
+ 119          {
+ 120   1        static bool csn_high = true;
+C51 COMPILER V9.03   HAL_SPI                                                               09/11/2014 13:25:46 PAGE 4   
+
+ 121   1        sstat_shadow |= SPISSTAT;
+*** ERROR C202 IN LINE 121 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISSTA
+             -T': undefined identifier
+ 122   1      
+ 123   1        if(sstat_shadow & 0x20)
+ 124   1        {
+ 125   2          csn_high = true;  
+ 126   2        }
+ 127   1        else
+ 128   1        {
+ 129   2          if(sstat_shadow & 0x10)
+ 130   2          {
+ 131   3            csn_high = false;
+ 132   3          }
+ 133   2        }
+ 134   1        sstat_shadow &= ~0x30;
+ 135   1        
+ 136   1        return csn_high;
+ 137   1      }
+ 138          
+ 139          bool spi_slave_data_ready()
+ 140          {
+ 141   1        sstat_shadow |= SPISSTAT;
+*** ERROR C202 IN LINE 141 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISSTA
+             -T': undefined identifier
+ 142   1      
+ 143   1        if(sstat_shadow & 0x01)
+ 144   1        {
+ 145   2          return true;  
+ 146   2        }
+ 147   1        else
+ 148   1        {
+ 149   2          return false;
+ 150   2        }   
+ 151   1      }
+ 152          
+ 153          uint8_t hal_spi_slave_read()
+ 154          {
+ 155   1        while(!(sstat_shadow & 0x01))
+ 156   1        {
+ 157   2          sstat_shadow |= SPISSTAT;
+*** ERROR C202 IN LINE 157 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISSTA
+             -T': undefined identifier
+ 158   2        }
+ 159   1        sstat_shadow &= ~0x01;
+ 160   1      
+ 161   1        return SPISDAT;
+*** ERROR C202 IN LINE 161 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISDAT
+             -': undefined identifier
+ 162   1      }
+ 163          
+ 164          void hal_spi_slave_preload(uint8_t pLoad)
+ 165          {
+ 166   1        SPISDAT=pLoad;
+*** ERROR C202 IN LINE 166 OF C:\Nordic Semiconductor\nRFgo SDK 2.3.0.10040\source_code\hal\nrf24le1\hal_spi.c: 'SPISDAT
+             -': undefined identifier
+ 167   1      }
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  32 ERROR(S)

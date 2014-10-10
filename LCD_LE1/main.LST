@@ -1,0 +1,124 @@
+C51 COMPILER V9.03   MAIN                                                                  08/10/2014 21:31:15 PAGE 1   
+
+
+C51 COMPILER V9.03, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE INCDIR(.\NRF24LE1_client-master\include;.\src) DEBUG OBJECTEX
+                    -TEND
+
+line level    source
+
+   1          
+   2          #include "libs.h"
+*** ERROR C202 IN LINE 66 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 75 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 99 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 108 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 132 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 141 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 165 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C202 IN LINE 174 OF src/gpio/src/gpio_pin_configure.c: 'PXCON_BIT_ADDR_MASK': undefined identifier
+*** ERROR C129 IN LINE 46 OF src/gpio/src/gpio_pin_val_read.c: missing ';' before 'gpio_pin_val_read'
+   3          #include "nRFLE.c"
+   4          #include "main.h"
+   5          #define LCD_E  GPIO_PIN_ID_P1_4
+   6          #define LCD_RS GPIO_PIN_ID_P1_1
+   7          #define LCD_D4 GPIO_PIN_ID_P1_0
+   8          #define LCD_D5 GPIO_PIN_ID_P0_7
+   9          #define LCD_D6 GPIO_PIN_ID_P0_5
+  10          #define LCD_D7 GPIO_PIN_ID_P0_4
+  11          #define LCD_CMD true
+  12          #define LCD_CHAR false
+  13          #define LCD_WIDTH 16
+  14          
+  15          void lcd_init()
+  16          {
+  17            gpio_pin_configure(LCD_E,GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  18            gpio_pin_configure(LCD_RS,GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  19            gpio_pin_configure(LCD_D4,GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  20            gpio_pin_configure(LCD_D5,GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  21            gpio_pin_configure(LCD_D6,GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  22            gpio_pin_configure(LCD_D7,GPIO_PIN_CONFIG_OPTION_DIR_OUTPUT);
+  23            delay_us(20);
+  24            lcd_byte(0x33,LCD_CMD);
+  25            delay_us(5);
+  26            lcd_byte(0x32,LCD_CMD);
+  27            delay_ms(1);
+  28            lcd_byte(0x28,LCD_CMD);
+  29            lcd_byte(0x0C,LCD_CMD);
+  30            lcd_byte(0x06,LCD_CMD);
+  31            lcd_byte(0x01,LCD_CMD);
+  32          }
+  33          void lcd_string(char *s)
+  34          {
+  35          //  Send string to display
+  36            while (*s !=0)
+  37          //  message = message.ljust(LCD_WIDTH," ")
+  38          //  for i in range(LCD_WIDTH):
+  39              lcd_byte((int)*s++,LCD_CHAR);
+  40          }
+  41          void lcd_byte(unsigned char bits, bool mode)
+  42          {
+  43          //   Send byte to data pins
+  44          //   bits = data
+  45          //   mode = True  for character
+C51 COMPILER V9.03   MAIN                                                                  08/10/2014 21:31:15 PAGE 2   
+
+  46          //          False for command
+  47            if (mode) gpio_pin_val_set(LCD_RS);
+  48            else gpio_pin_val_clear(LCD_RS);
+  49          //  GPIO.output(LCD_RS, mode) # RS
+  50          //   High bits
+  51            gpio_pin_val_clear(LCD_D4);
+  52            gpio_pin_val_clear(LCD_D5);
+  53            gpio_pin_val_clear(LCD_D6);
+  54            gpio_pin_val_clear(LCD_D7);
+  55          //  GPIO.output(LCD_D4, False)
+  56          //  GPIO.output(LCD_D5, False)
+  57          //  GPIO.output(LCD_D6, False)
+  58          //  GPIO.output(LCD_D7, False)
+  59            if (bits&0x10==0x10) gpio_pin_val_set(LCD_D4);
+  60            if (bits&0x20==0x20) gpio_pin_val_set(LCD_D5);
+  61            if (bits&0x40==0x40) gpio_pin_val_set(LCD_D6);
+  62            if (bits&0x80==0x80) gpio_pin_val_set(LCD_D7);
+  63          //   Toggle 'Enable' pin
+  64            delay_us(5);
+  65            gpio_pin_val_set(LCD_E);
+  66            delay_us(5);
+  67            gpio_pin_val_clear(LCD_E);
+  68            delay_us(5);
+  69          
+  70          //   Low bits
+  71            gpio_pin_val_clear(LCD_D4);
+  72            gpio_pin_val_clear(LCD_D5);
+  73            gpio_pin_val_clear(LCD_D6);
+  74            gpio_pin_val_clear(LCD_D7);
+  75          //  GPIO.output(LCD_D4, False)
+  76          //  GPIO.output(LCD_D5, False)
+  77          //  GPIO.output(LCD_D6, False)
+  78          //  GPIO.output(LCD_D7, False)
+  79            if (bits&0x01==0x01) gpio_pin_val_set(LCD_D4);
+  80            if (bits&0x02==0x02) gpio_pin_val_set(LCD_D5);
+  81            if (bits&0x04==0x04) gpio_pin_val_set(LCD_D6);
+  82            if (bits&0x08==0x08) gpio_pin_val_set(LCD_D7);
+  83          //  # Toggle 'Enable' pin
+  84            delay_ms(5);
+  85            gpio_pin_val_set(LCD_E);
+  86            delay_us(5);
+  87            gpio_pin_val_clear(LCD_E);
+  88            delay_us(5);
+  89           }
+  90          
+  91          
+  92          void main()
+  93          {
+  94          lcd_init();
+  95          while (1) {
+  96          
+  97          //lcd_byte(0x80,LCD_CMD);
+  98          //lcd_byte(0x48,LCD_CHAR);
+  99          lcd_string("Hel");
+ 100          }
+ 101          }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  9 ERROR(S)

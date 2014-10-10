@@ -1,0 +1,11 @@
+".\build\main.obj",
+".\build\hal_uart.obj",
+".\build\hal_clk.obj",
+".\build\hal_delay.obj",
+".\build\hal_nrf.obj",
+".\build\hal_nrf_hw.obj" 
+TO ".\build\transiver" REGFILE (.\build\transiver.ORC) 
+PRINT(".\transiver.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 
+OVERLAY( hal_nrf_write_reg ! * )
+XDATA( 0XFA00-0XFFFF )
